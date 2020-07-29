@@ -31,6 +31,32 @@ MapGrid::MapGrid(sf::RenderWindow &window, int size, int width) : m_window(windo
     //define all grid 
     int allArraySize{ m_width * horizontalCount }; 
     m_all_grid.resize(allArraySize);
+    
+    std::ifstream inf{ "data/map" };  
+     
+    if (!inf)
+    {
+        // Print an error and exit
+        std::cerr << "Uh oh, Sample.dat could not be opened for reading!\n";
+        return;
+    }
+    
+    int count{ 0 };
+
+    while (inf)
+    {
+        std::string strInput;
+        std::getline(inf, strInput);
+        
+        if  (count < m_all_grid.size() && count >= 5) 
+        {
+            int tmpCount{ count - 5 };
+            m_all_grid.at(tmpCount) = extractRGB(strInput);  
+        }
+        
+        count++;
+    }
+    setNewViewport();
 }
 
 
@@ -177,7 +203,6 @@ void MapGrid::setNewViewport()
         for (int j{ m_grid_to_right + i * m_width }; 
                 j < m_grid_to_right + verticalCount + i * m_width; ++j)
         {
-            std::cout << j << std::endl;
             m_view_grid[count] = m_all_grid.at(j);      
             ++count;  
         }
@@ -188,8 +213,10 @@ void MapGrid::checkSave(sf::Event &event)
 {
     if (event.type == sf::Event::TextEntered)
     {
-        if (event.text.unicode == 115)
+    if (event.text.unicode == 115)
             save();
+    if (event.text.unicode == 110)
+            reset();
     }
 }
 
@@ -221,4 +248,81 @@ void MapGrid::save()
             "," << element.blue << "\n";
         ++count;
     }
+}
+
+void MapGrid::reset()
+{
+    int count{ 0 };
+    RGB rgb;
+    rgb.blue;
+    rgb.green;
+    rgb.red;
+
+    for (const auto &element: m_all_grid)
+    {
+        m_all_grid.at(count) = rgb;         
+        ++count;
+    }
+    save();
+    setNewViewport();
+}
+
+int MapGrid::extractNum(std::string string)
+{
+    int reNum{ 0 };
+    int getLength{ 1 };
+    for(const auto &c : string) {
+        if (static_cast<int>(c) <= 57 && static_cast<int>(c) >= 48)
+        {
+            getLength *= 10; 
+        }
+    } 
+    getLength /= 10;
+    for(const auto &c : string) {
+        if (static_cast<int>(c) <= 57 && static_cast<int>(c) >= 48)
+        {
+            reNum += getLength * (static_cast<int>(c) - 48);
+            getLength /= 10;
+        }
+    } 
+
+    return reNum; 
+}
+
+
+MapGrid::RGB MapGrid::extractRGB(std::string string)
+{
+    int whichColorCount{ 0 };
+    RGB rgb;
+    std::string tmpString;
+
+    for(const auto &c : string) {
+         if (c == ',' && whichColorCount == 2)
+        {
+            ++whichColorCount; 
+            rgb.green = extractNum(tmpString);
+            tmpString = "";
+        }
+
+        if (c == ',' && whichColorCount == 1)
+        {
+            ++whichColorCount; 
+            rgb.red = extractNum(tmpString);
+            tmpString = "";
+        }
+
+        if (whichColorCount > 0 && 
+            static_cast<int>(c) <= 57 && static_cast<int>(c) >= 48)
+            tmpString += c;
+
+        if (c == ':')
+        {
+            whichColorCount = 1; 
+        }
+    }
+
+    rgb.blue = extractNum(tmpString);
+    tmpString = "";
+
+    return rgb;
 }
