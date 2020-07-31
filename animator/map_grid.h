@@ -17,7 +17,11 @@ private:
     void draw_toolbar();
     void draw_rects();
     void checkKeyPressed();
-    void reset();
+    void save(std::string name);
+    void load(std::string name); 
+    int extractNum(std::string string);
+    RGB extractRGB(std::string string);
+    int extractWhichArray(std::string string);
     sf::RenderWindow &m_window;
     RGB m_rgb_toolbar[16] = { 0 };
     std::vector<std::vector<RGB> > m_view_grids;

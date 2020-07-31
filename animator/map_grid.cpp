@@ -36,8 +36,6 @@ MapGrid::MapGrid(sf::RenderWindow &window, int size) : m_window(window)
     }
 }
 
-
-
 void MapGrid::update() 
 {
     checkKeyPressed();
@@ -204,5 +202,181 @@ void MapGrid::checkKeyPressed()
         m_view_grids[cloneInto] = m_view_grids[toClone]; 
         
     }
+    
+    if (sf::Keyboard::isKeyPressed(sf::Keyboard::S))
+    {
+        std::cout << "Name file name: ";
+        std::string name;
+        std::cin >> name;
+        save(name);
+    }
+    if (sf::Keyboard::isKeyPressed(sf::Keyboard::L))
+    {
+        std::cout << "Name file name: ";
+        std::string name;
+        std::cin >> name;
+        load(name);
+    }
+}
+
+void MapGrid::save(std::string name)
+{
+    std::string fileDirName;
+    fileDirName += "data/";
+    fileDirName += name;
+    std::ofstream outf(fileDirName);    
+    if (!outf)
+    {
+        std::cerr << "Cant read file" << std::endl;
+        return;
+    }
+    
+    int width{ static_cast<int>(m_window.getSize().x) };
+    int height{ static_cast<int>(m_window.getSize().y) };
+    
+    int verticalCount{ width / m_size }; 
+    int horizontalCount{ (height - 50) / m_size }; 
+
+    outf << "Number_of_frames:" << m_view_grids.size() << '\n'; 
+    outf << "Array_size:" << m_view_grids[0].size() << '\n';
+    outf << "Size:" << m_size << '\n';
+
+    for (int i{ 0 }; i < m_view_grids.size(); ++i)
+    {
+        for (int j{ 0 }; j < m_view_grids[0].size(); ++j)
+        {
+            outf << i;
+            outf << "(";  
+            outf << m_view_grids[i][j].red; 
+            outf << ","; 
+            outf << m_view_grids[i][j].green; 
+            outf << ","; 
+            outf << m_view_grids[i][j].blue;
+            outf << ") ";
+            outf << '\n';
+        }
+    }
+}
+
+void MapGrid::load(std::string name)
+{   
+    std::string fileDirName;
+    fileDirName += "data/";
+    fileDirName += name;
+ 
+    std::ifstream inf{fileDirName};  
+     
+    if (!inf)
+    {
+        // Print an error and exit
+        std::cerr << "Uh oh, Sample.dat could not be opened for reading!\n";
+        return;
+    }
+    
+    int count{ 0 };
+
+    while (inf)
+    {
+        std::string strInput;
+        std::getline(inf, strInput);
+        
+        if (count == 0)
+        {
+            m_view_grids.resize(extractNum(strInput)); 
+        }
+        else if (count == 1)
+        {
+            for (auto &elem : m_view_grids)
+            {
+                elem.resize(extractNum(strInput)); 
+            }
+        }
+        else if (count == 2)
+        {
+            m_size = extractNum(strInput); 
+        }
+        else if (count < m_view_grids[0].size() * m_view_grids.size() + 3)
+        {
+            int tmpCount{(count - 3) - extractWhichArray(strInput) * static_cast<int>(m_view_grids[0].size())};
+            std::cout << tmpCount << std::endl;
+            m_view_grids.at(extractWhichArray(strInput)).at(tmpCount) = extractRGB(strInput);
+        }
+        
+        count++;
+    }
+}
+
+int MapGrid::extractNum(std::string string)
+{
+    int reNum{ 0 };
+    int getLength{ 1 };
+    for(const auto &c : string) {
+        if (static_cast<int>(c) <= 57 && static_cast<int>(c) >= 48)
+        {
+            getLength *= 10; 
+        }
+    } 
+    getLength /= 10;
+    for(const auto &c : string) {
+        if (static_cast<int>(c) <= 57 && static_cast<int>(c) >= 48)
+        {
+            reNum += getLength * (static_cast<int>(c) - 48);
+            getLength /= 10;
+        }
+    } 
+
+    return reNum; 
+}
+
+
+MapGrid::RGB MapGrid::extractRGB(std::string string)
+{
+    int whichColorCount{ 0 };
+    RGB rgb;
+    std::string tmpString;
+
+    for(const auto &c : string) {
+        if (c == ')' && whichColorCount == 3)
+        {
+            rgb.blue = extractNum(tmpString);
+        }
+        if (c == ',' && whichColorCount == 2)
+        {
+            ++whichColorCount; 
+            rgb.green = extractNum(tmpString);
+            tmpString = "";
+        }
+
+        if (c == ',' && whichColorCount == 1)
+        {
+            ++whichColorCount; 
+            rgb.red = extractNum(tmpString);
+            tmpString = "";
+        }
+
+        if (whichColorCount > 0 && 
+            static_cast<int>(c) <= 57 && static_cast<int>(c) >= 48)
+            tmpString += c;
+
+        if (c == '(')
+        {
+            whichColorCount = 1; 
+        }
+    }
+
+
+    return rgb;
+}
+
+int MapGrid::extractWhichArray(std::string string)
+{
+    std::string tmpString;
+
+    for(const auto &c : string) {
+        if (c == '(')
+            break;
+        tmpString += c;
+    }
+    return extractNum(tmpString);
 }
 
