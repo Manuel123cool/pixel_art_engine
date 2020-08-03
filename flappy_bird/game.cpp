@@ -5,7 +5,9 @@
 MapGrid::MapGrid(sf::RenderWindow &window) : m_window(window)
 {
     m_gameStop = false;
+    m_birdPosFactor = 0;
     m_goingUp = false;
+
     std::ifstream inf{ "maps/map" };  
      
     if (!inf)
@@ -53,7 +55,7 @@ MapGrid::MapGrid(sf::RenderWindow &window) : m_window(window)
     m_view_grid.resize( m_view_width * m_height );
     setNewViewport();
 
-    m_birdPos = (m_view_width / 2) + m_view_width * (m_height / 2);
+    load();
 }
 
 int MapGrid::extractNum(std::string string)
@@ -122,6 +124,7 @@ void MapGrid::update()
     {
         checkKeyPressed();
         moveViewToRight(); 
+        collisionDetection(); 
         drawBird();
         draw_rects();
     }
@@ -196,48 +199,179 @@ void MapGrid::moveViewToRight()
 
 void MapGrid::drawBird()
 {   
-    RGB rgb; 
-    rgb.red = 255; 
-    m_view_grid.at(m_birdPos) = rgb;
-    static int s_countDelay{ 0 };
-    ++s_countDelay;    
-    if (m_view_grid[m_birdPos + 1].red > 0 || 
-            m_view_grid[m_birdPos + 1].green > 0 || m_view_grid[m_birdPos + 1].blue > 0)
+    static int s_howOften{ 0 };
+    ++s_howOften;
+    if (m_goingUp && s_howOften == 10)
     {
-        std::cout << "Game over" << std::endl;
-        m_gameStop = true;
-    } 
-    
-    if (m_goingUp && s_countDelay == 20) 
-    {
-        m_birdPos -= m_view_width;
-        if (m_view_grid[m_birdPos].red > 0 || 
-            m_view_grid[m_birdPos].green > 0 || m_view_grid[m_birdPos].blue > 0)
-        {
-            std::cout << "Game over" << std::endl;
-            m_gameStop = true;
-        }
-
+        --m_birdPosFactor;
+        s_howOften = 0; 
         static int s_howOftenUp{ 0 };
-        if (s_howOftenUp == 2) 
+        if (s_howOftenUp == 2)
         {
             m_goingUp = false;
-            s_howOftenUp = 0;
+            s_howOftenUp = 0; 
         }
         ++s_howOftenUp;
-        s_countDelay = 0;
-    }
-    else if (s_countDelay == 20)
+    } 
+    else if (s_howOften == 10)
     {
-        m_birdPos += m_view_width;
-        if (m_view_grid[m_birdPos].red > 0 || 
-            m_view_grid[m_birdPos].green > 0 || m_view_grid[m_birdPos].blue > 0)
+        ++m_birdPosFactor;
+        s_howOften = 0; 
+    } 
+    int whichFrame{ 0 };
+    if (m_goingUp)
+        whichFrame = 2;
+    else
+        whichFrame = 1;
+    
+    std::vector<int> birdPos{ rePosLowerOrHigher(reColorPos(whichFrame)) }; 
+    std::vector<int> birdGridPos{ reColorPos(whichFrame) };
+    std::cout << "Begin" << std::endl;
+    for (int i{ 0 }; i < birdPos.size(); ++i)
+    {
+        m_view_grid.at(birdPos.at(i)) = m_bird_grid.at(whichFrame).at(birdGridPos.at(i)); 
+        std::cout << birdPos.at(i) << std::endl;
+    }
+}
+
+std::vector<int> MapGrid::reColorPos(int which)
+{
+    std::vector<int> birdPos; 
+    for (int i{ 0 }; i < m_bird_grid.at(which).size(); ++i)
+    {
+        if (m_bird_grid.at(which).at(i).blue != 0 || 
+                m_bird_grid.at(which).at(i).green != 0 || m_bird_grid.at(which).at(i).red != 0)
+        { 
+            birdPos.push_back(i);      
+        }
+    } 
+    return birdPos;
+}
+
+void MapGrid::load()
+{
+    std::ifstream inf{"animation/bird"};  
+     
+    if (!inf)
+    {
+        // Print an error and exit
+        std::cerr << "Uh oh, Sample.dat could not be opened for reading!\n";
+        return;
+    }
+    
+    int count{ 0 };
+
+    while (inf)
+    {
+        std::string strInput;
+        std::getline(inf, strInput);
+        
+        if (count == 0)
         {
-            std::cout << "Game over" << std::endl;
-            m_gameStop = true;
+            m_bird_grid.resize(extractNum(strInput)); 
+        }
+        else if (count == 1)
+        {
+            for (auto &elem : m_bird_grid)
+            {
+                elem.resize(extractNum(strInput)); 
+            }
+        }
+        else if (count == 2)
+        {
+            m_size = extractNum(strInput); 
+        }
+        else if (count < m_bird_grid[0].size() * m_bird_grid.size() + 3)
+        {
+            int tmpCount{(count - 3) - 
+                    extractWhichArray(strInput) * static_cast<int>(m_bird_grid[0].size())};
+            m_bird_grid.at(extractWhichArray(strInput)).at(tmpCount) = extractRGB_bird(strInput);
+        }
+        
+        count++;
+    }
+}
+
+int MapGrid::extractWhichArray(std::string string)
+{
+    std::string tmpString;
+
+    for(const auto &c : string) {
+        if (c == '(')
+            break;
+        tmpString += c;
+    }
+    return extractNum(tmpString);
+}
+
+MapGrid::RGB MapGrid::extractRGB_bird(std::string string)
+{
+    int whichColorCount{ 0 };
+    RGB rgb;
+    std::string tmpString;
+
+    for(const auto &c : string) {
+        if (c == ')' && whichColorCount == 3)
+        {
+            rgb.blue = extractNum(tmpString);
+        }
+        if (c == ',' && whichColorCount == 2)
+        {
+            ++whichColorCount; 
+            rgb.green = extractNum(tmpString);
+            tmpString = "";
         }
 
+        if (c == ',' && whichColorCount == 1)
+        {
+            ++whichColorCount; 
+            rgb.red = extractNum(tmpString);
+            tmpString = "";
+        }
 
-        s_countDelay = 0;
+        if (whichColorCount > 0 && 
+            static_cast<int>(c) <= 57 && static_cast<int>(c) >= 48)
+            tmpString += c;
+
+        if (c == '(')
+        {
+            whichColorCount = 1; 
+        }
+    }
+
+    return rgb;
+}
+
+
+std::vector<int> MapGrid::rePosLowerOrHigher(std::vector<int> pos)
+{
+    std::vector<int> newPos;
+    for (const auto &elem : pos)
+    {
+        newPos.push_back(elem + m_view_width * m_birdPosFactor);
+    }        
+    return newPos;
+}
+
+void MapGrid::collisionDetection()
+{
+    setNewViewport(); 
+    int whichFrame{ 0 };
+    if (m_goingUp)
+        whichFrame = 2;
+    else
+        whichFrame = 1;
+
+    std::vector<int> pos{ rePosLowerOrHigher(reColorPos(whichFrame)) }; 
+    for (const auto &elem : pos)
+    {
+        if (m_view_grid[elem].red > 0 || 
+                m_view_grid[elem].green > 0 || 
+                    m_view_grid[elem].blue > 0)
+        {
+            m_gameStop = true;
+            std::cout << "Game over" << elem << std::endl;
+            return;
+        }
     }
 }

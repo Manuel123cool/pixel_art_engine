@@ -16,6 +16,13 @@ MapGrid::MapGrid(sf::RenderWindow &window, int size) : m_window(window)
     m_rgb_toolbar[14].blue = 255; 
 
     m_rgb_toolbar[1].green = 255;
+    
+    m_rgb_toolbar[3].red = 255;
+    m_rgb_toolbar[3].green = 255;
+     
+    m_rgb_toolbar[4].green = 255;
+    m_rgb_toolbar[4].blue = 255;
+    m_rgb_toolbar[4].red = 255;
 
     //define view grid
     //get vertical and horizontal count
