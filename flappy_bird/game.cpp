@@ -223,15 +223,13 @@ void MapGrid::drawBird()
         whichFrame = 2;
     else
         whichFrame = 1;
-    
     std::vector<int> birdPos{ rePosLowerOrHigher(reColorPos(whichFrame)) }; 
     std::vector<int> birdGridPos{ reColorPos(whichFrame) };
-    std::cout << "Begin" << std::endl;
+    
     for (int i{ 0 }; i < birdPos.size(); ++i)
-    {
+    { 
         m_view_grid.at(birdPos.at(i)) = m_bird_grid.at(whichFrame).at(birdGridPos.at(i)); 
-        std::cout << birdPos.at(i) << std::endl;
-    }
+    } 
 }
 
 std::vector<int> MapGrid::reColorPos(int which)

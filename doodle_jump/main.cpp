@@ -5,7 +5,7 @@
 int main()
 {
     int windowWidth = 800;
-    int windowHeight = 650;
+    int windowHeight = 600;
 
     sf::RenderWindow window(sf::VideoMode(windowWidth, windowHeight),
         "Map_Creator", sf::Style::Titlebar | sf::Style::Close);
@@ -23,7 +23,6 @@ int main()
             if (event.type == sf::Event::KeyPressed)
                if (event.key.code == sf::Keyboard::Escape)
                     window.close();
-            mapGrid.checkSave(event);
         }
         window.clear();
         mapGrid.update();    

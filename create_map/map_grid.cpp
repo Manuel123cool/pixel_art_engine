@@ -3,10 +3,12 @@
 #include <iostream>
 
 
-MapGrid::MapGrid(sf::RenderWindow &window, int size, int width) : m_window(window)
+MapGrid::MapGrid(sf::RenderWindow &window, int size, int width, int height) : m_window(window)
 {
     m_size = size; 
     m_width = width;
+    m_height = height;
+
     m_grid_to_right = 0;
 
     //define toolbar colors
@@ -25,11 +27,13 @@ MapGrid::MapGrid(sf::RenderWindow &window, int size, int width) : m_window(windo
 
     int verticalCount{ width1 / size }; 
     int horizontalCount{ (height1 - 50) / size }; 
+
+    m_grid_to_up = m_height - horizontalCount;
     int arraySize{ verticalCount * horizontalCount };
     m_view_grid.resize(arraySize);
     
     //define all grid 
-    int allArraySize{ m_width * horizontalCount }; 
+    int allArraySize{ m_width * m_height }; 
     m_all_grid.resize(allArraySize);
     
     std::ifstream inf{ "data/map" };  
@@ -163,8 +167,8 @@ void MapGrid::checkKeyPressed()
 
             xRow--;
             yRow--;
-
-            int index1{ yRow * m_width + xRow + m_grid_to_right}; 
+            int plusUp{ m_grid_to_up * m_width };
+            int index1{ yRow * m_width + xRow + m_grid_to_right + plusUp}; 
             m_all_grid.at(index1) = m_activeColor;
             
             int index{ yRow * verticalCount + xRow };
@@ -187,6 +191,23 @@ void MapGrid::checkKeyPressed()
             m_grid_to_right--;
         setNewViewport();
     }    
+    
+    if (sf::Keyboard::isKeyPressed(sf::Keyboard::Down))
+    {
+            int height{ static_cast<int>(m_window.getSize().y) };
+            int horizontalCount{ (height - 50) / m_size }; 
+ 
+        if ((m_grid_to_up + 1) + horizontalCount <= m_height)
+            ++m_grid_to_up;
+        setNewViewport();  
+    } 
+
+    if (sf::Keyboard::isKeyPressed(sf::Keyboard::Up))
+    {
+        if ((m_grid_to_up - 1) >= 0)
+            --m_grid_to_up;
+        setNewViewport();  
+    } 
 }
 
 void MapGrid::setNewViewport()
@@ -203,7 +224,8 @@ void MapGrid::setNewViewport()
         for (int j{ m_grid_to_right + i * m_width }; 
                 j < m_grid_to_right + verticalCount + i * m_width; ++j)
         {
-            m_view_grid[count] = m_all_grid.at(j);      
+            int plusUp{ j + m_grid_to_up * m_width };
+            m_view_grid[count] = m_all_grid.at(plusUp);      
             ++count;  
         }
     }
@@ -237,9 +259,7 @@ void MapGrid::save()
 
     outf << "Array_size:" << m_all_grid.size() << '\n';
     outf << "Width:" << m_width << '\n';
-    outf << "Heigth:" << horizontalCount << '\n';
-    outf << "Size:" << m_size << '\n';
-    outf << "m_view_width:" << verticalCount << '\n';
+    outf << "Heigth:" << m_height << '\n';
     
     int count{ 0 };
     for (const auto &element: m_all_grid)
