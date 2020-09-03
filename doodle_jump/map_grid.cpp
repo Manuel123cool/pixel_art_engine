@@ -22,7 +22,7 @@ MapGrid::MapGrid(sf::RenderWindow &window, int size, int width, int height) : m_
     int horizontalCount{ (height1) / size }; 
 
     m_grid_to_up = m_height - horizontalCount;
-    m_ballPos = (horizontalCount - 1) * verticalCount + (verticalCount / 2);  
+    m_ballPos = m_height * m_width - (verticalCount / 2);  
     int arraySize{ verticalCount * horizontalCount };
     m_view_grid.resize(arraySize);
     
@@ -54,6 +54,7 @@ MapGrid::MapGrid(sf::RenderWindow &window, int size, int width, int height) : m_
         
         count++;
     }
+    m_ball_all_grid = m_all_grid;
     setNewViewport();
 }
 
@@ -121,7 +122,7 @@ void MapGrid::setNewViewport()
                 j < m_grid_to_right + verticalCount + i * m_width; ++j)
         {
             int plusUp{ j + m_grid_to_up * m_width };
-            m_view_grid[count] = m_all_grid.at(plusUp);      
+            m_view_grid[count] = m_ball_all_grid.at(plusUp);      
             ++count;  
         }
     }
@@ -189,19 +190,40 @@ MapGrid::RGB MapGrid::extractRGB(std::string string)
 
 void MapGrid::drawBall()
 {
-    setNewViewport();
     int width{ static_cast<int>(m_window.getSize().x) };
     int verticalCount{ width / m_size }; 
 
+    const int height1{ static_cast<int>(m_window.getSize().y) };
+    int horizontalCount{ (height1) / m_size }; 
+
+    m_ball_all_grid = m_all_grid;
+
+    if (m_goingUp == false) 
+    {
+        if (m_all_grid[m_ballPos].red > 0 ||
+                m_all_grid[m_ballPos].green > 0 ||
+                     m_all_grid[m_ballPos].blue > 0)
+        {
+            static int countBla{ 0 };
+            ++countBla;
+            std::cout << "hallo" << countBla << std::endl;
+            m_goingUp = true; 
+            m_countMoves = 0;
+        }
+    }
 
     static int s_countFrames{ 0 };
     ++s_countFrames;
     if (s_countFrames == 10)
     {
-        if (m_goingUp)
-            --m_grid_to_up;
-        else 
-            ++m_grid_to_up;
+        const int minimum{ m_width * m_height - ((horizontalCount / 2) * verticalCount) };
+        if (m_ballPos < minimum) 
+        {         
+            if (m_goingUp && (m_grid_to_up - 1) >= 0)
+                --m_grid_to_up;
+            else if ((m_grid_to_up + 1) + horizontalCount <= m_height)
+                ++m_grid_to_up;
+        }
 
         if (m_goingLeft)
             m_ballPos -= 1;
@@ -215,25 +237,16 @@ void MapGrid::drawBall()
 
         s_countFrames = 0;
         ++m_countMoves;
-        if (m_countMoves == 10)
+        if (m_countMoves == 12)
         {
             m_goingUp = false;
             m_countMoves = 0;
         }
     }
 
-    if (m_goingUp == false) 
-    {
-        if (m_view_grid[m_ballPos + verticalCount].red > 0 ||
-                m_view_grid[m_ballPos + verticalCount].green > 0 ||
-                     m_view_grid[m_ballPos + verticalCount].blue > 0)
-        {
-            m_goingUp = true; 
-            m_countMoves = 0;
-        }
-    }
-
     RGB rgb;
     rgb.red = 255;
-    m_view_grid.at(m_ballPos) = rgb;
+    m_ball_all_grid.at(m_ballPos) = rgb;
+
+    setNewViewport();
 }

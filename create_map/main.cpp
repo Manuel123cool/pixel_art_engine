@@ -11,7 +11,7 @@ int main()
         "Map_Creator", sf::Style::Titlebar | sf::Style::Close);
     window.setFramerateLimit(60);
      
-    MapGrid mapGrid(window, 25, 32, 200);
+    MapGrid mapGrid(window, 25, 32, 300);
 
     while (window.isOpen())
     {

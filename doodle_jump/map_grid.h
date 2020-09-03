@@ -25,6 +25,7 @@ private:
     sf::RenderWindow &m_window;
     std::vector<RGB> m_view_grid;
     std::vector<RGB> m_all_grid;
+    std::vector<RGB> m_ball_all_grid;
     int m_grid_to_right;
     int m_grid_to_up;
     int m_size;
